@@ -1,0 +1,52 @@
+diff --git a/src/demo.rs b/src/demo.rs
+index 60810f4..6fc91fe 100644
+--- a/src/demo.rs
++++ b/src/demo.rs
+@@ -618,6 +618,38 @@ pub fn populate(app: &mut App) {
+     }
+ }
+ 
++#[cfg(any(test, feature = "demo"))]
++fn sonos_devices(app: &mut App, active: bool) {
++    app.show_devices = true;
++    app.receivers = vec![crate::zeroconf::Receiver {
++        name: "Office".into(),
++        device_id: Some("office".into()),
++        address: "192.168.1.10".parse().unwrap(),
++        port: 1400,
++        path: "/spotifyzc".into(),
++    }];
++    app.devices
++        .retain(|device| device.id.as_deref() != Some("office"));
++    if active {
++        for device in &mut app.devices {
++            device.is_active = false;
++        }
++        let device = Device {
++            id: Some("office".into()),
++            name: "Office".into(),
++            is_active: true,
++            is_restricted: true,
++            volume_percent: Some(8),
++            supports_volume: Some(true),
++            kind: "speaker".into(),
++        };
++        if let Some(remote) = &mut app.remote {
++            remote.state.device = Some(device.clone());
++        }
++        app.devices.push(device);
++    }
++}
++
+ /// Words to go with the sample track, timed so that the one being sung
+ /// sits mid-panel at the demo's playback position.
+ #[cfg(any(test, feature = "demo"))]
+@@ -871,6 +903,8 @@ pub fn apply_flags(app: &mut App, page: Option<&str>, show: Option<&str>) {
+                 }
+             }
+             "devices" => app.show_devices = true,
++            "sonos-idle" => sonos_devices(app, false),
++            "sonos-active" => sonos_devices(app, true),
+             // These paired states capture both outcomes of the collection
+             // Shuffle click for the PR visual comparison.
+             "shuffle-selected" => {

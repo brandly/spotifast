@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sonos Connect: Visual Review</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f6f7f8; color: #202428; font: 15px/1.5 system-ui, sans-serif; }
+  main { max-width: 1320px; margin: auto; padding: 24px; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  p { margin: 8px 0; }
+  code { font-size: 13px; }
+  a { color: #126e41; }
+  .controls { display: flex; align-items: end; flex-wrap: wrap; gap: 16px; margin: 20px 0 12px; }
+  label { display: grid; gap: 4px; font-weight: 600; }
+  select, button { padding: 8px 12px; border: 1px solid #a8afb7; border-radius: 4px; background: white; color: inherit; font: inherit; }
+  button { cursor: pointer; }
+  button[aria-pressed="true"] { background: #136b43; color: white; border-color: #136b43; }
+  button:focus-visible, select:focus-visible { outline: 3px solid #547bc0; outline-offset: 2px; }
+  .toggle { display: flex; gap: 4px; }
+  figure { margin: 0; }
+  .capture { width: 100%; aspect-ratio: 1280/800; background: #dde1e5; overflow: hidden; }
+  img { display: block; width: 100%; height: 100%; object-fit: contain; }
+  figcaption { margin-top: 8px; }
+  .meta { color: #535b64; font-size: 13px; }
+  @media (max-width: 600px) { main { padding: 14px; } select { max-width: 100%; } }
+</style>
+<main>
+  <h1>Sonos Connect: Visual Review</h1>
+  <p>Idle Sonos receivers become normal transfer targets, without a receiver-login step. While a restricted Sonos is playing, transport and volume controls are enabled when local playback is ready. No layout, navigation, spacing, or theme redesign.</p>
+  <p class="meta">Baseline: <a href="https://github.com/crmne/spotifast/commit/7048219716fb8bbf2f1af0934f545801f52cb29b"><code>7048219</code></a> (Espaye's upstream base), with only the identical demo fixture added. Candidate: <a href="https://github.com/brandly/spotifast/commit/34520a6ed1533951f85a9e1d4817f0015ba1e41a"><code>34520a6</code></a>, preserving Espaye's <a href="https://github.com/Espaye/spotifast/commit/f61f0df57ad4539a8f9da8c3566832db2c8bbd2e"><code>f61f0df</code></a>. Actual captures: macOS ARM64, Retina 2x, 100% app zoom, demo playlist <code>pl1</code>, matching data and open picker state.</p>
+  <div class="controls">
+    <label>Theme<select id="theme"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+    <label>Window<select id="size"><option value="normal">Normal (1280 x 800)</option><option value="narrow">Narrow (760 x 620)</option></select></label>
+    <label>State<select id="state"><option value="idle">Idle Office, picker open</option><option value="active">Playing on Office, picker open</option></select></label>
+    <div class="toggle" aria-label="Revision">
+      <button id="before" type="button" aria-pressed="false">Before</button>
+      <button id="after" type="button" aria-pressed="true">After</button>
+    </div>
+  </div>
+  <figure>
+    <div class="capture"><img id="capture" src="captures/after-dark-normal-idle.png" alt="After: dark theme, normal window, idle Office speaker in the device picker"></div>
+    <figcaption id="caption" aria-live="polite"></figcaption>
+  </figure>
+  <p id="description"></p>
+  <p class="meta">Scope: open idle picker and active restricted-device controls. Existing loading, empty, error, and ordinary receiver views are unchanged. Automated coverage checks the Office click action, session readiness, stale polls, sign-out, and queue ordering. Remaining checks: upstream CI on Linux/macOS/Windows and maintainer visual approval. Live playback was heard on the macOS Office Sonos Arc, including the build without the speculative Sonos HTTP login. Other speaker models, prolonged sleep, and a separate VLAN were not tested here.</p>
+</main>
+<script>
+  const theme = document.querySelector('#theme');
+  const size = document.querySelector('#size');
+  const state = document.querySelector('#state');
+  const capture = document.querySelector('#capture');
+  const container = document.querySelector('.capture');
+  let side = 'after';
+  function render() {
+    const revision = side === 'after' ? 'After' : 'Before';
+    const dimensions = size.value === 'normal' ? '1280 x 800' : '760 x 620';
+    const label = `${revision}: ${theme.value}, ${dimensions}, ${state.options[state.selectedIndex].text}`;
+    capture.src = `captures/${side}-${theme.value}-${size.value}-${state.value}.png`;
+    capture.alt = label;
+    container.style.aspectRatio = size.value === 'normal' ? '1280/800' : '760/620';
+    document.querySelector('#caption').textContent = label;
+    document.querySelector('#description').textContent = state.value === 'idle'
+      ? 'Before: Office is an unsigned receiver with "Click to connect". After: Office is a speaker row whose click transfers playback over Connect.'
+      : 'Before: Spotify reports Office as restricted, disabling transport and volume. After: the same playback snapshot has usable controls through the ready Connect session.';
+    for (const id of ['before', 'after']) document.querySelector(`#${id}`).setAttribute('aria-pressed', String(side === id));
+  }
+  for (const control of [theme, size, state]) control.addEventListener('change', render);
+  for (const id of ['before', 'after']) document.querySelector(`#${id}`).addEventListener('click', () => { side = id; render(); });
+  render();
+</script>
+</html>
